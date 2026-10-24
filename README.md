@@ -3,11 +3,26 @@
 一個用 HTML + CSS + JavaScript 寫嘅個人網站骨架。
 冇任何第三方套件，所以日後幾乎唔使維護依賴。
 
+## 目前安排
+
+- **網站首頁**已經上咗線：https://nelson0516.github.io/
+- **會員系統**（登入、資料庫、管理後台）而家行喺**呢部電腦上面**，未公開。
+  等個 project 做完、要畀人用嗰陣，再決定搬去邊度（見「二、會員系統」）。
+- 兩個版本喺同一個 GitHub repo，所以備份同版本記錄係一齊嘅。
+
 ---
 
 ## 一、日常流程：改網站
 
 ### 1. 開返個網站
+
+**最方便：直接雙擊 `啟動網站.command`**（喺專案資料夾入面）。
+佢會開一個 Terminal 視窗，個網站就行咗。閂嘅話喺嗰個視窗撳 Control + C。
+
+想用手機、平板試，可以用同一個 Wi-Fi 雙擊 `啟動網站-手機測試.command`，
+佢會印一個網址畀你，用手機瀏覽器打開就得（測試完記得閂咗）。
+
+或者用 Terminal：
 
 打開「終端機」（Terminal，喺 Applications 嘅 Utilities 入面），或者喺 VS Code 入面
 撳 `Ctrl + ~` 打開內置終端機，然後：
@@ -87,7 +102,7 @@ git commit -m "更新咗作品列表"
 | `admin.html` | 管理後台 |
 | `js/login.js` `js/account.js` `js/admin.js` | 三個頁面嘅互動邏輯 |
 | `css/members.css` | 會員系統嘅樣式 |
-| `test/api.test.js` | 自動測試（17 個） |
+| `test/api.test.js` | 自動測試（19 個） |
 
 ### 開返個網站
 
@@ -160,6 +175,9 @@ login_logs    登入紀錄：幾點、邊個帳戶、成功定失敗、IP、裝�
 - **修改資料嘅請求會檢查來源**（Origin），防止跨站請求偽造。
 - **有安全標頭**：CSP、`X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`。
 - **SQL 全部用參數綁定**，唔會有 SQL 注入。
+- **網站伺服器只派公開網頁**。資料庫、`initial-passwords.txt`、
+  後端原始碼、`.env` 呢啲檔案全部攔截，唔會俾人用網址直接拎走
+  （連 `/DB/...` 呢種大小寫變體都擋埋，因為 macOS 檔案系統唔分大小寫）。
 
 ### 自動測試
 
@@ -167,7 +185,7 @@ login_logs    登入紀錄：幾點、邊個帳戶、成功定失敗、IP、裝�
 npm test
 ```
 
-會用一個臨時資料庫跑 17 個測試（登入、鎖定、權限、改密、限流、SQL 注入…），
+會用一個臨時資料庫跑 19 個測試（登入、鎖定、權限、改密、限流、SQL 注入、檔案存取保護…），
 唔會整到正式資料庫。
 
 ### 備份
@@ -349,6 +367,8 @@ my-website/
 ├─ test/
 │  └─ api.test.js     ← 自動測試
 ├─ server.js           ← 伺服器（派檔案 + 處理 API + 自動 reload）
+├─ 啟動網站.command    ← 雙擊：喺呢部機開個網站（自己先用）
+├─ 啟動網站-手機測試.command ← 雙擊：同一個 Wi-Fi 用手機試
 ├─ package.json        ← 專案設定
 ├─ favicon.svg         ← 網站圖示
 ├─ .nojekyll           ← 令 GitHub Pages 唔經 Jekyll 處理

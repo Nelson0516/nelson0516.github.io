@@ -40,6 +40,57 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
+/* ---------- 邊啲檔案唔准派出去 ---------- */
+
+// 整個目錄都唔准公開
+const BLOCKED_TOP_DIRS = new Set([
+  'db', // 資料庫、初始密碼清單
+  'src', // 後端原始碼
+  'test', // 測試檔
+  'node_modules',
+]);
+
+// 根目錄入面唔准公開嘅檔案
+const BLOCKED_TOP_FILES = new Set([
+  'server.js',
+  'package.json',
+  'package-lock.json',
+  'initial-passwords.txt',
+]);
+
+// 點解都唔准公開嘅副檔名（無論喺邊）
+const BLOCKED_EXT = new Set([
+  '.db', '.sqlite', '.sqlite3', '.db3',
+  '.wal', '.shm',
+  '.pem', '.key', '.p12', '.pfx', '.keystore',
+]);
+
+// 根目錄檔名一望就知係敏感資料
+const SENSITIVE_NAME = /(secret|credential|token|passw|apikey|api-key)/i;
+
+/**
+ * 判斷一個相對路徑係咪可以派畀瀏覽器。
+ * 網站伺服器只應該派「網站內容」，唔應該派到資料庫、密碼、原始碼。
+ */
+function isPublicPath(relPath) {
+  const segments = relPath.split(path.sep).filter(Boolean);
+  if (segments.length === 0) return false;
+
+  // 隱藏檔案／資料夾（.git、.env、.nojekyll …）一律唔派
+  if (segments.some((s) => s.startsWith('.'))) return false;
+
+  // macOS 檔案系統預設唔分大小寫（/DB/ 打得開 db/），
+  // 所以比對之前一定要全部轉做細寫，唔可以畀人用大小寫繞過。
+  const top = segments[0].toLowerCase();
+  if (BLOCKED_TOP_DIRS.has(top)) return false;
+  if (segments.length === 1 && BLOCKED_TOP_FILES.has(top)) return false;
+  if (segments.length === 1 && SENSITIVE_NAME.test(top)) return false;
+
+  if (BLOCKED_EXT.has(path.extname(relPath).toLowerCase())) return false;
+
+  return true;
+}
+
 /* ---------- 開發用：檔案一有改動就重新載入 ---------- */
 
 let version = 0;
@@ -151,6 +202,13 @@ function sendFile(req, res, nonce, secure) {
 
   // 安全檢查：唔准讀到專案以外嘅檔案
   if (!filePath.startsWith(ROOT + path.sep) && filePath !== ROOT) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden');
+    return;
+  }
+
+  // 安全檢查：資料庫、密碼、原始碼一律唔派出去
+  if (!isPublicPath(path.relative(ROOT, filePath))) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden');
     return;

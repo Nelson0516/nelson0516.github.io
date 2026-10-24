@@ -351,3 +351,56 @@ test('SQL 都係注入唔到', async () => {
   const count = await db.get('SELECT COUNT(*) AS n FROM users');
   assert.ok(count.n > 0);
 });
+
+test('資料庫、密碼檔、原始碼唔可以由網頁攞走', async () => {
+  const sensitive = [
+    '/db/initial-passwords.txt',
+    '/db/members.db',
+    '/db/members.db-wal',
+    '/db/members.db-shm',
+    '/server.js',
+    '/src/db.js',
+    '/src/auth.js',
+    '/src/api.js',
+    '/test/api.test.js',
+    '/package.json',
+    '/.gitignore',
+    '/.env',
+    '/db/../db/members.db',
+    // macOS 檔案系統唔分大小寫，所以大小寫變體都要擋
+    '/DB/initial-passwords.txt',
+    '/DB/members.db',
+    '/Db/Members.db',
+    '/SERVER.JS',
+    '/SRC/db.js',
+    '/Package.json',
+  ];
+
+  for (const p of sensitive) {
+    const res = await fetch(base + p);
+    assert.equal(res.status, 403, `${p} 應該被擋，唔應該派出去`);
+  }
+});
+
+test('正常嘅網站檔案照樣派得出去', async () => {
+  const publicFiles = [
+    '/',
+    '/index.html',
+    '/login.html',
+    '/account.html',
+    '/admin.html',
+    '/css/style.css',
+    '/css/members.css',
+    '/js/main.js',
+    '/js/common.js',
+    '/js/login.js',
+    '/js/account.js',
+    '/js/admin.js',
+    '/favicon.svg',
+  ];
+
+  for (const p of publicFiles) {
+    const res = await fetch(base + p);
+    assert.equal(res.status, 200, `${p} 應該派得出去`);
+  }
+});
