@@ -37,9 +37,6 @@
   };
 
   const body = document.getElementById('assets-body');
-  const drawer = document.getElementById('asset-drawer');
-  const form = document.getElementById('asset-form');
-  const formMsg = document.getElementById('asset-form-msg');
 
   /* ---------- 小工具 ---------- */
 
@@ -60,13 +57,6 @@
     const info = EQUIPMENT[value];
     if (!info) return el('span', { class: 'muted-cell', text: dash(value) });
     return badge(info.label, info.cls);
-  }
-
-  function gridItem(label, value) {
-    return el('div', {}, [
-      el('dt', { text: label }),
-      el('dd', { text: dash(value) }),
-    ]);
   }
 
   /* ---------- 登出 ---------- */
@@ -228,7 +218,7 @@
             el('button', {
               class: 'btn btn-ghost btn-sm',
               text: '詳情',
-              onclick: () => openDrawer(asset.id),
+                onclick: () => window.App.assetDrawer.open(asset.id),
             }),
           ]),
         ])
@@ -372,196 +362,6 @@
     loadStats();
     loadList();
   });
-  /* ---------- 右邊詳情面板 ---------- */
-
-  async function openDrawer(id) {
-    drawer.hidden = false;
-    document.body.classList.add('drawer-open');
-
-    document.getElementById('drawer-title').textContent = '載入緊…';
-    document.getElementById('drawer-barcode').textContent = '';
-    document.getElementById('drawer-group').textContent = '';
-    document.getElementById('excel-grid').textContent = '';
-    document.getElementById('managed-grid').textContent = '';
-    document.getElementById('asset-logs').textContent = '';
-    form.hidden = true;
-
-    const res = await api(`/api/assets/${id}`);
-    if (!res.ok) {
-      document.getElementById('drawer-title').textContent =
-        res.data.message || '載入唔到資料';
-      return;
-    }
-
-    state.detail = res.data.asset;
-    renderDetail(res.data.asset, res.data.logs || []);
-  }
-
-  function closeDrawer() {
-    drawer.hidden = true;
-    document.body.classList.remove('drawer-open');
-    state.detail = null;
-  }
-
-  function renderDetail(asset, logs) {
-    const title = [asset.brand, asset.model_no].filter(Boolean).join(' ');
-
-    document.getElementById('drawer-group').textContent =
-      asset.asset_group || '—';
-    document.getElementById('drawer-title').textContent = title || '未命名資產';
-    document.getElementById('drawer-barcode').textContent =
-      `條碼 ${asset.bar_code}` +
-      (asset.serial_no ? `　·　序號 ${asset.serial_no}` : '');
-
-    // 管理資料
-    const managed = document.getElementById('managed-grid');
-    managed.textContent = '';
-
-    if (state.isAdmin) {
-      form.hidden = false;
-      managed.hidden = true;
-      document.getElementById('edit-location').value = asset.location ?? '';
-      document.getElementById('edit-status').value = asset.status || 'active';
-      document.getElementById('edit-custodian').value = asset.custodian ?? '';
-      document.getElementById('edit-department').value = asset.department ?? '';
-      document.getElementById('edit-condition').value = asset.condition_note ?? '';
-      document.getElementById('edit-note').value = asset.managed_note ?? '';
-      document.getElementById('edit-reason').value = '';
-      formMsg.textContent = '';
-    } else {
-      form.hidden = true;
-      managed.hidden = false;
-      managed.append(
-        gridItem('現行位置', asset.location),
-        gridItem('樓宇', asset.building),
-        gridItem('房間', asset.room),
-        gridItem('系統狀態', (STATUS[asset.status] || {}).label),
-        gridItem('負責人', asset.custodian),
-        gridItem('部門', asset.department),
-        gridItem('狀況備註', asset.condition_note),
-        gridItem('管理備註', asset.managed_note),
-        gridItem('最後修改', asset.updated_at ? window.App.formatTime(asset.updated_at) : '未改過')
-      );
-    }
-
-    // Excel 原始資料
-    const excel = document.getElementById('excel-grid');
-    excel.textContent = '';
-    excel.append(
-      gridItem('Row No', asset.row_no),
-      gridItem('EA No', asset.ea_no),
-      gridItem('Asset No', asset.asset_no),
-      gridItem('AC Code', asset.ac_code),
-      gridItem('PO / DN 號', asset.po_no),
-      gridItem('PO 日期', asset.po_date),
-      gridItem('Excel 原始位置', asset.excel_location),
-      gridItem('Excel 狀態', asset.equipment_status),
-      gridItem('資產類別', asset.asset_group),
-      gridItem('品牌', asset.brand),
-      gridItem('型號', asset.model_no),
-      gridItem('序號', asset.serial_no),
-      gridItem('到貨日期', asset.arr_date),
-      gridItem('登記日期', asset.reg_date),
-      gridItem('財務年度', asset.fin_year),
-      gridItem('Job No', asset.job_no),
-      gridItem('Ref', asset.ref_code),
-      gridItem('備註', asset.remark)
-    );
-
-    // 變更紀錄
-    const timeline = document.getElementById('asset-logs');
-    timeline.textContent = '';
-
-    if (!logs.length) {
-      timeline.append(
-        el('li', { class: 'timeline-empty', text: '仲未有人改過呢部機嘅資料。' })
-      );
-      return;
-    }
-
-    for (const log of logs) {
-      timeline.append(
-        el('li', { class: 'timeline-item' }, [
-          el('p', { class: 'timeline-title' }, [
-            el('strong', { text: log.field }),
-            el('span', {
-              class: 'timeline-arrow',
-              text: ` ${dash(log.old_value)} → ${dash(log.new_value)}`,
-            }),
-          ]),
-          el('p', { class: 'timeline-meta' }, [
-            el('span', { text: log.user_name || '系統' }),
-            el('span', { text: '　' + window.App.formatTime(log.created_at) }),
-          ]),
-          log.note ? el('p', { class: 'timeline-note', text: log.note }) : null,
-        ])
-      );
-    }
-  }
-
-  document.getElementById('drawer-close').addEventListener('click', closeDrawer);
-  document.querySelectorAll('[data-drawer-close]').forEach((node) => {
-    node.addEventListener('click', closeDrawer);
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !drawer.hidden) closeDrawer();
-  });
-
-  /* ---------- 儲存修改 ---------- */
-
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (!state.detail) return;
-
-    const save = document.getElementById('asset-save');
-    save.disabled = true;
-    save.textContent = '儲存緊…';
-    formMsg.textContent = '';
-    formMsg.className = 'form-msg';
-
-    const payload = {
-      location: document.getElementById('edit-location').value.trim(),
-      status: document.getElementById('edit-status').value,
-      custodian: document.getElementById('edit-custodian').value.trim(),
-      department: document.getElementById('edit-department').value.trim(),
-      condition_note: document.getElementById('edit-condition').value.trim(),
-      managed_note: document.getElementById('edit-note').value.trim(),
-      note: document.getElementById('edit-reason').value.trim(),
-    };
-
-    try {
-      const res = await api(`/api/assets/${state.detail.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        formMsg.textContent = res.data.message || '儲存唔到';
-        formMsg.className = 'form-msg form-msg-error';
-        return;
-      }
-
-      await loadStats();
-      await loadList();
-      await openDrawer(state.detail.id);
-
-      // 訊息要最後先寫，因為重開詳情會清空表單
-      if (res.data.changed) {
-        formMsg.textContent = '已經儲存咗';
-        formMsg.className = 'form-msg form-msg-ok';
-      } else {
-        formMsg.textContent = '冇嘢改過';
-        formMsg.className = 'form-msg';
-      }
-    } catch (err) {
-      formMsg.textContent = '連唔到伺服器';
-      formMsg.className = 'form-msg form-msg-error';
-    } finally {
-      save.disabled = false;
-      save.textContent = '儲存';
-    }
-  });
 
   /* ---------- 起手 ---------- */
 
@@ -572,6 +372,7 @@
       return;
     }
     state.isAdmin = me.data.user.role === 'admin';
+    window.App.assetDrawer.state.isAdmin = state.isAdmin;
 
     const ok = await loadStats();
     if (!ok) return;

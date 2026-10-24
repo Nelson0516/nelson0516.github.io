@@ -191,6 +191,47 @@ const SORTABLE = {
   serial_no: 'a.serial_no',
 };
 
+// 查找頁面可以逐個欄位填，填咗幾個就幾個都要啱（AND）
+const LOOKUP_FIELDS = {
+  bar_code: 'a.bar_code',
+  location: 'a.location',
+  model_no: 'a.model_no',
+  serial_no: 'a.serial_no',
+  asset_group: 'a.asset_group',
+  brand: 'a.brand',
+  status: 'a.status',
+};
+
+/**
+ * 查找用嘅篩選：每個欄位都可以淨係填一部分，幾個欄位之間係 AND。
+ *
+ *   位置會同 Excel 原始位置一齊搵，
+ *   咁就算管理員喺系統改咗位置，舊位置都仲搵得返。
+ */
+function buildLookupFilters(ctx) {
+  const p = ctx.url.searchParams;
+  const where = [];
+  const params = [];
+  let filled = 0;
+
+  for (const [key, column] of Object.entries(LOOKUP_FIELDS)) {
+    const value = (p.get(key) || '').trim();
+    if (!value) continue;
+    filled += 1;
+
+    if (key === 'location') {
+      where.push('(a.location LIKE ? OR a.excel_location LIKE ?)');
+      params.push(`%${value}%`, `%${value}%`);
+    } else {
+      where.push(`${column} LIKE ?`);
+      params.push(`%${value}%`);
+    }
+  }
+
+  const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  return { clause, params, filled };
+}
+
 function buildFilters(ctx) {
   const p = ctx.url.searchParams;
   const where = [];
@@ -356,6 +397,44 @@ async function assetFilters(db, req, res) {
   });
 }
 
+/**
+ * 查找：逐個欄位填資料，搵返相關嘅電腦
+ */
+async function lookupAssets(db, req, res, ctx) {
+  const { clause, params, filled } = buildLookupFilters(ctx);
+
+  if (!filled) {
+    return json(res, 400, {
+      ok: false,
+      message: '請最少填一個欄位先搵得到',
+    });
+  }
+
+  const limit = Math.min(200, Math.max(1, Number(ctx.url.searchParams.get('limit')) || 50));
+
+  const rows = await db.all(
+    `SELECT a.id, a.bar_code, a.row_no, a.location, a.excel_location, a.building, a.room,
+            a.equipment_status, a.asset_group, a.brand, a.model_no, a.serial_no,
+            a.arr_date, a.po_no, a.po_date, a.reg_date, a.remark,
+            a.status, a.custodian, a.department, a.location_edited, a.updated_at
+       FROM assets a
+       ${clause}
+      ORDER BY a.bar_code
+      LIMIT ?`,
+    [...params, limit]
+  );
+
+  const total = await db.get(`SELECT COUNT(*) AS n FROM assets a ${clause}`, params);
+
+  return json(res, 200, {
+    ok: true,
+    assets: rows,
+    total: total?.n ?? 0,
+    limit,
+    truncated: (total?.n ?? 0) > limit,
+  });
+}
+
 async function assetDetail(db, req, res, ctx) {
   const id = Number(ctx.params.id);
   if (!Number.isInteger(id)) return json(res, 400, { ok: false, message: '編號唔啱' });
@@ -479,9 +558,11 @@ module.exports = {
   toIsoDate,
   mapSheetRow,
   buildFilters,
+  buildLookupFilters,
   listAssets,
   assetStats,
   assetFilters,
+  lookupAssets,
   assetDetail,
   updateAsset,
 };

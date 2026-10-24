@@ -196,6 +196,7 @@ test('未登入就睇唔到資產資料', async () => {
     '/api/assets',
     '/api/assets/stats',
     '/api/assets/filters',
+    '/api/assets/lookup',
     '/api/assets/1',
   ];
 
@@ -342,6 +343,79 @@ test('搜尋入面嘅引號唔會整到 SQL 壞', async () => {
   const res = await req(
     'GET',
     `/api/assets?q=${encodeURIComponent("' OR '1'='1")}`,
+    { cookie }
+  );
+  assert.equal(res.status, 200);
+  assert.equal(res.data.total, 0);
+});
+
+/* ---------- 查找頁面 ---------- */
+
+test('七個欄位每個都可以搵返返相關嘅電腦', async () => {
+  const cookie = await login('member', MEMBER_PW);
+
+  const cases = [
+    ['bar_code=BC002', 'BC002'],
+    ['location=ST-LSB', 'BC003'],
+    ['model_no=ThinkPad', 'BC002'],
+    ['asset_group=PRINTER', 'BC003'],
+    ['brand=EPSON', 'BC003'],
+    ['serial_no=SN001', 'BC001'],
+    ['status=loaned', 'BC002'],
+  ];
+
+  for (const [query, expected] of cases) {
+    const res = await req('GET', `/api/assets/lookup?${query}`, { cookie });
+    assert.equal(res.status, 200, `${query} 應該查得到`);
+    assert.equal(res.data.total, 1, `${query} 應該搵到 ${expected}`);
+    assert.equal(res.data.assets[0].bar_code, expected);
+  }
+});
+
+test('查找可以只填一部分，唔使打晒成個名', async () => {
+  const cookie = await login('member', MEMBER_PW);
+  const res = await req('GET', '/api/assets/lookup?brand=ep', { cookie });
+  assert.equal(res.status, 200);
+  assert.equal(res.data.total, 1);
+  assert.equal(res.data.assets[0].bar_code, 'BC003');
+});
+
+test('填多過一個欄位，就要全部啱先會顯示', async () => {
+  const cookie = await login('member', MEMBER_PW);
+
+  const both = await req('GET', '/api/assets/lookup?brand=LENOVO&model_no=ThinkPad', { cookie });
+  assert.equal(both.data.total, 1);
+  assert.equal(both.data.assets[0].bar_code, 'BC002');
+
+  const clash = await req('GET', '/api/assets/lookup?brand=LENOVO&model_no=EliteDesk', { cookie });
+  assert.equal(clash.data.total, 0);
+});
+
+test('乜都冇填就會話你知要填一樣嘢', async () => {
+  const cookie = await login('member', MEMBER_PW);
+  const res = await req('GET', '/api/assets/lookup', { cookie });
+  assert.equal(res.status, 400);
+  assert.match(res.data.message, /最少填一個/);
+});
+
+test('查找位置會連 Excel 原始位置一齊搵', async () => {
+  const cookie = await login('member', MEMBER_PW);
+
+  // BC001 嘅位置已經俾人改咗做 YIA 999，但 Excel 原始位置仍然係 LSK 408
+  const current = await req('GET', '/api/assets/lookup?location=YIA+999', { cookie });
+  assert.equal(current.data.total, 1);
+  assert.equal(current.data.assets[0].bar_code, 'BC001');
+
+  const original = await req('GET', '/api/assets/lookup?location=LSK+408', { cookie });
+  assert.equal(original.data.total, 1);
+  assert.equal(original.data.assets[0].bar_code, 'BC001');
+});
+
+test('查找入面嘅引號唔會整到 SQL 壞', async () => {
+  const cookie = await login('member', MEMBER_PW);
+  const res = await req(
+    'GET',
+    `/api/assets/lookup?bar_code=${encodeURIComponent("' OR '1'='1")}`,
     { cookie }
   );
   assert.equal(res.status, 200);

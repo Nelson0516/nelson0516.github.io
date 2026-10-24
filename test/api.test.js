@@ -390,6 +390,7 @@ test('正常嘅網站檔案照樣派得出去', async () => {
     '/account.html',
     '/admin.html',
     '/assets.html',
+    '/lookup.html',
     '/css/style.css',
     '/css/members.css',
     '/css/assets.css',
@@ -399,6 +400,8 @@ test('正常嘅網站檔案照樣派得出去', async () => {
     '/js/account.js',
     '/js/admin.js',
     '/js/assets.js',
+    '/js/asset-detail.js',
+    '/js/lookup.js',
     '/favicon.svg',
   ];
 

@@ -247,8 +247,11 @@ Excel 入面有幾多部機就自動入幾多部。
 | `src/xlsx.js` | 自己寫嘅 Excel 讀取器（零 npm 依賴） |
 | `src/assets.js` | 資產嘅查詢、統計、篩選、改動紀錄 |
 | `assets.html` | 資產管理頁面 |
-| `js/assets.js` `css/assets.css` | 資產頁面嘅互動同樣式 |
-| `test/assets.test.js` | 自動測試（15 個） |
+| `lookup.html` | 查找頁面（逐個欄位搵返所需資料） |
+| `js/assets.js` `js/lookup.js` | 兩個頁面嘅互動 |
+| `js/asset-detail.js` | 共用嘅詳情抽屜（兩個頁面都用得） |
+| `css/assets.css` | 資產同查找頁面嘅樣式 |
+| `test/assets.test.js` | 自動測試（21 個） |
 
 ### 匯入 Excel
 
@@ -292,6 +295,21 @@ npm run import-assets -- ~/Documents/20261024_CUHK_Computer.xlsx
 1. 開 DBeaver → New Database → SQLite
 2. Database 揀 `db/assets.db`（Path 要揀完整路徑）
 3. 兩個表：`assets`（每部電腦一行）同 `asset_logs`（每次改動一行）
+
+### 查找頁面
+
+打開 **http://localhost:4321/lookup.html**。
+唔使先喺資產管理頁面慢慢撳，直接填你記得嘅嘢就得。
+
+七個欄位：條碼、位置、型號、類別、品牌、序號、狀態。
+
+- 每個欄位都可以淨係填一部分，例如品牌填 `APP` 就搵到所有 APPLE。
+- 填多過一格就要全部啱先會顯示（例如品牌填 LENOVO、型號填 ThinkPad）。
+- 乜都冇填就撳「查找」，系統會提你填一樣嘢。
+- 「位置」會連 Excel 原始位置一齊搵，所以就算你喺系統改咗位置，
+  舊位置都仲搵得返返。
+- 結果表每行都有「詳情」掣，可以喺同一個抽屜睇完整資料同改資料。
+- 最多一次顯示 200 部，超過會話你知，要加條件收窄範圍。
 
 ### ⚠️ 呢部分同樣要後端
 
@@ -420,6 +438,7 @@ my-website/
 ├─ account.html        ← 會員中心
 ├─ admin.html          ← 管理後台
 ├─ assets.html         ← 電腦資產管理
+├─ lookup.html         ← 查找電腦（七個欄位逐個搵）
 ├─ css/
 │  ├─ style.css       ← 外觀
 │  ├─ members.css     ← 會員系統嘅樣式
@@ -430,7 +449,9 @@ my-website/
 │  ├─ login.js        ← 登入頁邏輯
 │  ├─ account.js      ← 會員中心邏輯
 │  ├─ admin.js        ← 管理後台邏輯
-│  └─ assets.js       ← 資產管理邏輯
+│  ├─ assets.js       ← 資產管理邏輯
+│  ├─ lookup.js       ← 查找頁邏輯
+│  └─ asset-detail.js ← 共用詳情抽屜（資產同查找都用）
 ├─ src/
 │  ├─ auth.js         ← 密碼雜湊、session
 │  ├─ db.js           ← 資料庫存取層

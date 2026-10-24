@@ -739,6 +739,11 @@ async function handleAssets(assetsDb, memberDb, req, res, ctx, method) {
     return true;
   }
 
+  if (pathname === '/api/assets/lookup' && method === 'GET') {
+    await assetsApi.lookupAssets(assetsDb, req, res, ctx);
+    return true;
+  }
+
   const detailMatch = pathname.match(/^\/api\/assets\/(\d+)$/);
   if (detailMatch) {
     ctx.params = { id: detailMatch[1] };

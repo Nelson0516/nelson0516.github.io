@@ -276,6 +276,34 @@ body.drawer-open { overflow: hidden; }
 }
 
 /* ============================================
+   查找頁面
+   ============================================ */
+
+.lookup-panel { padding: 18px 20px; margin-bottom: 18px; }
+
+.lookup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 18px;
+}
+
+.lookup-grid .field { margin-bottom: 14px; }
+
+.lookup-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* 冇訊息嘅時候唔好留白 */
+.lookup-panel .form-msg:empty { display: none; }
+
+.lookup-panel .form-msg { margin: 0; }
+
+/* ============================================
    細螢幕
    ============================================ */
 
@@ -284,6 +312,9 @@ body.drawer-open { overflow: hidden; }
   .filter-row { gap: 8px; }
   .filter-search { width: 100%; }
   .filter-select { flex: 1 1 45%; max-width: none; }
+  .lookup-panel { padding: 14px 14px; }
+  .lookup-grid { grid-template-columns: 1fr; gap: 0; }
+  .lookup-actions .btn { flex: 1 1 auto; justify-content: center; }
   .drawer-panel { width: 100%; }
   .drawer-body { padding: 0 16px 24px; }
   .drawer-head { padding: 16px 16px 14px; }

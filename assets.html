@@ -20,6 +20,7 @@
       <nav class="site-nav" aria-label="主要選單">
         <a href="index.html">返首頁</a>
         <a href="assets.html" aria-current="true">資產管理</a>
+        <a href="lookup.html">查找</a>
         <a href="account.html">會員中心</a>
         <a href="#" id="logout-link">登出</a>
       </nav>
@@ -111,82 +112,8 @@
     </div>
   </footer>
 
-  <!-- 右邊滑出嘅詳情面板 -->
-  <div class="drawer" id="asset-drawer" hidden>
-    <div class="drawer-scrim" data-drawer-close></div>
-    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-      <header class="drawer-head">
-        <div>
-          <p class="drawer-eyebrow" id="drawer-group">—</p>
-          <h2 id="drawer-title">—</h2>
-          <p class="drawer-sub" id="drawer-barcode">—</p>
-        </div>
-        <button class="icon-btn" type="button" id="drawer-close" aria-label="關閉詳情">×</button>
-      </header>
-
-      <div class="drawer-body">
-        <section class="drawer-section">
-          <h3>管理資料</h3>
-
-          <form id="asset-form" class="drawer-form" hidden novalidate>
-            <div class="field">
-              <label for="edit-location">位置</label>
-              <input id="edit-location" type="text" placeholder="例如 YIA 606">
-              <p class="field-hint">人手改咗嘅位置，之後再匯入 Excel 都唔會被洗走。</p>
-            </div>
-            <div class="field">
-              <label for="edit-status">系統狀態</label>
-              <select id="edit-status">
-                <option value="active">使用中</option>
-                <option value="maintenance">維修中</option>
-                <option value="loaned">借出中</option>
-                <option value="retired">已棄置</option>
-                <option value="lost">遺失</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="edit-custodian">負責人</label>
-              <input id="edit-custodian" type="text" placeholder="邊個用緊部機">
-            </div>
-            <div class="field">
-              <label for="edit-department">部門</label>
-              <input id="edit-department" type="text">
-            </div>
-            <div class="field">
-              <label for="edit-condition">狀況備註</label>
-              <input id="edit-condition" type="text" placeholder="例如：電池老化、要換風扇">
-            </div>
-            <div class="field">
-              <label for="edit-note">管理備註</label>
-              <textarea id="edit-note" rows="3" placeholder="其他備註"></textarea>
-            </div>
-            <div class="field">
-              <label for="edit-reason">今次改動嘅原因</label>
-              <input id="edit-reason" type="text" placeholder="會記低喺變更紀錄度">
-            </div>
-            <p class="form-msg" id="asset-form-msg" role="alert"></p>
-            <div class="modal-actions">
-              <button class="btn btn-ghost" type="button" data-drawer-close>取消</button>
-              <button class="btn btn-primary" type="submit" id="asset-save">儲存</button>
-            </div>
-          </form>
-
-          <dl class="profile-grid" id="managed-grid"></dl>
-        </section>
-        <section class="drawer-section">
-          <h3>Excel 原始資料</h3>
-          <dl class="profile-grid" id="excel-grid"></dl>
-        </section>
-
-        <section class="drawer-section">
-          <h3>變更紀錄</h3>
-          <ol class="timeline" id="asset-logs"></ol>
-        </section>
-      </div>
-    </div>
-  </div>
-
   <script src="js/common.js"></script>
+  <script src="js/asset-detail.js"></script>
   <script src="js/assets.js"></script>
 </body>
 </html>
