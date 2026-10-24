@@ -8,6 +8,7 @@
 - **網站首頁**已經上咗線：https://nelson0516.github.io/
 - **會員系統**（登入、資料庫、管理後台）而家行喺**呢部電腦上面**，未公開。
   等個 project 做完、要畀人用嗰陣，再決定搬去邊度（見「二、會員系統」）。
+- **電腦資產管理系統**（由 Excel 匯入 691 部電腦）同樣行喺呢部電腦上面。
 - 兩個版本喺同一個 GitHub repo，所以備份同版本記錄係一齊嘅。
 
 ---
@@ -185,8 +186,8 @@ login_logs    登入紀錄：幾點、邊個帳戶、成功定失敗、IP、裝�
 npm test
 ```
 
-會用一個臨時資料庫跑 19 個測試（登入、鎖定、權限、改密、限流、SQL 注入、檔案存取保護…），
-唔會整到正式資料庫。
+會用臨時資料庫跑 34 個測試（登入、鎖定、權限、改密、限流、SQL 注入、檔案存取保護、
+資產篩選、Excel 匯入、改動紀錄…），唔會整到正式資料庫。
 
 ### 備份
 
@@ -194,6 +195,7 @@ SQLite 嘅備份好簡單 —— 淨係複製一個檔案：
 
 ```bash
 sqlite3 db/members.db ".backup '~/Desktop/members-backup.db'"
+sqlite3 db/assets.db ".backup '~/Desktop/assets-backup.db'"
 ```
 
 > 伺服器開住嗰陣，資料庫有三個檔案：`.db`、`.db-wal`、`.db-shm`。
@@ -228,7 +230,78 @@ GitHub Pages 只係派靜態檔案，冇後端程式，所以**登入系統喺 G
 
 ---
 
-## 三、擺上網（部署）
+## 三、電腦資產管理系統
+
+用嚟管理一堆電腦。資料來源係一份 Excel（`20261024_CUHK_Computer.xlsx`），
+Excel 入面有幾多部機就自動入幾多部。
+
+打開 **http://localhost:4321/assets.html** 就見到。
+登入咗嘅會員都睇得到，只有管理員可以改資料。
+
+### 有咩嘢喺入面
+
+| 檔案 | 用途 |
+|---|---|
+| `db/schema-assets.sql` | 資產資料庫結構（2 個表：`assets` `asset_logs`） |
+| `db/import-assets.js` | 由 Excel 匯入工具 |
+| `src/xlsx.js` | 自己寫嘅 Excel 讀取器（零 npm 依賴） |
+| `src/assets.js` | 資產嘅查詢、統計、篩選、改動紀錄 |
+| `assets.html` | 資產管理頁面 |
+| `js/assets.js` `css/assets.css` | 資產頁面嘅互動同樣式 |
+| `test/assets.test.js` | 自動測試（15 個） |
+
+### 匯入 Excel
+
+```bash
+npm run import-assets
+```
+
+唔使指定檔案 —— 程式會自己喺 `~/Documents` 搵 Excel，
+優先揀檔名有 `CUHK` / `Computer` 嗰個。要指定檔案就得：
+
+```bash
+npm run import-assets -- ~/Documents/20261024_CUHK_Computer.xlsx
+```
+
+每次匯入會印出新增、更新幾多部。重複匯入同一份 Excel **唔會**整出重複紀錄。
+
+### 資料點分
+
+每部電腦有兩套資料，喺詳情面板會分開顯示：
+
+| | 邊度嚟 | 匯入 Excel 嘅時候 |
+|---|---|---|
+| **Excel 原始資料** | Excel 檔案 | 每次都會更新 |
+| **管理資料**（位置、系統狀態、負責人、部門、備註） | 你喺系統度入 | **唔會**被洗走 |
+
+管理員喺系統改咗位置之後，系統會記低呢個位置係人手改嘅，
+之後再匯入 Excel 都唔會覆蓋返 —— 除非你自己喺系統改返。
+
+### Excel 嘅「EquipmentStatus」唔同「系統狀態」
+
+- **EquipmentStatus**（NEW / USED）：Excel 原始資料，代表部機係新定舊
+- **系統狀態**（使用中 / 維修中 / 借出中 / 已棄置 / 遺失）：你自己喺系統度標記
+
+每次改系統狀態都會留低紀錄（邊個改、改咗乜、幾時、原因），
+喺詳情面板最下面「變更紀錄」睇得到。
+
+### 圖形化管理資料庫
+
+資產資料庫係 `db/assets.db`，用 DBeaver Community 開（已裝好）就見到圖形介面：
+
+1. 開 DBeaver → New Database → SQLite
+2. Database 揀 `db/assets.db`（Path 要揀完整路徑）
+3. 兩個表：`assets`（每部電腦一行）同 `asset_logs`（每次改動一行）
+
+### ⚠️ 呢部分同樣要後端
+
+同會員系統一樣，GitHub Pages 行唔到（冇後端）。
+喺 Mac mini 行 `npm run dev` 就得，部機開住就可以用。
+
+---
+
+## 四、擺上網（部署）
+
 
 呢個網站**已經上咗線**：https://nelson0516.github.io/
 
@@ -301,7 +374,7 @@ gh auth status            # 睇登入狀態
 
 ---
 
-## 四、長線維護
+## 五、長線維護
 
 ### 每月做一次（約 5 分鐘）
 
@@ -338,7 +411,7 @@ brew update
 
 ---
 
-## 五、檔案結構
+## 六、檔案結構
 
 ```text
 my-website/
@@ -346,26 +419,37 @@ my-website/
 ├─ login.html          ← 登入頁
 ├─ account.html        ← 會員中心
 ├─ admin.html          ← 管理後台
+├─ assets.html         ← 電腦資產管理
 ├─ css/
 │  ├─ style.css       ← 外觀
-│  └─ members.css     ← 會員系統嘅樣式
+│  ├─ members.css     ← 會員系統嘅樣式
+│  └─ assets.css      ← 資產管理嘅樣式
 ├─ js/
 │  ├─ main.js         ← 首頁互動效果
 │  ├─ common.js       ← 共用工具（時間格式、API）
 │  ├─ login.js        ← 登入頁邏輯
 │  ├─ account.js      ← 會員中心邏輯
-│  └─ admin.js        ← 管理後台邏輯
+│  ├─ admin.js        ← 管理後台邏輯
+│  └─ assets.js       ← 資產管理邏輯
 ├─ src/
 │  ├─ auth.js         ← 密碼雜湊、session
 │  ├─ db.js           ← 資料庫存取層
-│  └─ api.js          ← 所有 API
+│  ├─ api.js          ← 所有 API
+│  ├─ assets.js       ← 資產查詢、統計、改動紀錄
+│  └─ xlsx.js         ← Excel 讀取器（零依賴）
 ├─ db/
 │  ├─ schema.sql      ← 資料庫結構
+│  ├─ schema-assets.sql ← 資產資料庫結構
 │  ├─ seed.js         ← 產生 30 個會員
+│  ├─ import-assets.js ← 由 Excel 匯入資產
 │  ├─ members.db      ← 正式資料庫（唔會 commit）
+│  ├─ assets.db       ← 資產資料庫（唔會 commit）
 │  └─ initial-passwords.txt ← 初始密碼（唔會 commit，派完就刪）
 ├─ test/
-│  └─ api.test.js     ← 自動測試
+│  ├─ api.test.js     ← 會員系統測試
+│  ├─ assets.test.js  ← 資產系統測試
+│  └─ helpers/
+│     └─ make-xlsx.js ← 測試用嘅 Excel 產生器
 ├─ server.js           ← 伺服器（派檔案 + 處理 API + 自動 reload）
 ├─ 啟動網站.command    ← 雙擊：喺呢部機開個網站（自己先用）
 ├─ 啟動網站-手機測試.command ← 雙擊：同一個 Wi-Fi 用手機試
@@ -378,7 +462,7 @@ my-website/
 
 ---
 
-## 六、常聞問題
+## 七、常聞問題
 
 **Q: 撳 `npm run dev` 話 `command not found: npm`？**
 

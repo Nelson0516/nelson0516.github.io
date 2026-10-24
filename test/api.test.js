@@ -389,13 +389,16 @@ test('正常嘅網站檔案照樣派得出去', async () => {
     '/login.html',
     '/account.html',
     '/admin.html',
+    '/assets.html',
     '/css/style.css',
     '/css/members.css',
+    '/css/assets.css',
     '/js/main.js',
     '/js/common.js',
     '/js/login.js',
     '/js/account.js',
     '/js/admin.js',
+    '/js/assets.js',
     '/favicon.svg',
   ];
 

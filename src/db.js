@@ -13,6 +13,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const SCHEMA_PATH = path.join(__dirname, '..', 'db', 'schema.sql');
+const ASSETS_SCHEMA_PATH = path.join(__dirname, '..', 'db', 'schema-assets.sql');
 
 /* ---------- 本機 SQLite ---------- */
 
@@ -80,30 +81,51 @@ function d1Adapter(d1) {
  * @param {object} opts
  * @param {string} [opts.file] 本機 SQLite 檔案路徑
  * @param {object} [opts.d1]   Cloudflare D1 binding（如果用雲端）
+ * @param {string} [opts.schema] 用邊份 schema（會員定資產）
  */
 async function createDb(opts = {}) {
   const db = opts.d1 ? d1Adapter(opts.d1) : localAdapter(opts.file);
-  await migrate(db);
+  await migrate(db, opts.schema);
   return db;
 }
 
 /** 套用 schema.sql（可以重複執行） */
-async function migrate(db) {
-  const sql = fs.readFileSync(SCHEMA_PATH, 'utf8');
+async function migrate(db, schemaPath) {
+  const file = schemaPath === 'assets' ? ASSETS_SCHEMA_PATH : schemaPath || SCHEMA_PATH;
+  const sql = fs.readFileSync(file, 'utf8');
   for (const stmt of splitStatements(sql)) {
     await db.exec(stmt);
   }
 }
 
-/** 將 SQL 檔案拆成一句一句執行（去掉 -- 註解） */
+/** 將 SQL 檔案拆成一句一句執行（去掉 -- 註解，但保留引號入面嘅內容） */
 function splitStatements(sql) {
-  return sql
+  const withoutComments = sql
     .split('\n')
-    .filter((line) => !line.trim().startsWith('--'))
-    .join('\n')
+    .map((line) => stripLineComment(line))
+    .join('\n');
+
+  return withoutComments
     .split(';')
     .map((s) => s.trim())
     .filter(Boolean);
 }
 
-module.exports = { createDb, splitStatements };
+/** 去掉一行入面嘅 -- 註解（但唔會整爛引號入面嘅文字） */
+function stripLineComment(line) {
+  let inSingle = false;
+  let inDouble = false;
+
+  for (let i = 0; i < line.length - 1; i++) {
+    const ch = line[i];
+    if (ch === "'" && !inDouble) inSingle = !inSingle;
+    else if (ch === '"' && !inSingle) inDouble = !inDouble;
+    else if (ch === '-' && line[i + 1] === '-' && !inSingle && !inDouble) {
+      return line.slice(0, i);
+    }
+  }
+
+  return line;
+}
+
+module.exports = { createDb, splitStatements, SCHEMA_PATH, ASSETS_SCHEMA_PATH };

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>電腦資產管理 — 陳大文</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/members.css">
+  <link rel="stylesheet" href="css/assets.css">
+</head>
+<body class="members-page assets-page">
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">CW</span>
+        <span class="brand-name">陳大文</span>
+      </a>
+      <nav class="site-nav" aria-label="主要選單">
+        <a href="index.html">返首頁</a>
+        <a href="assets.html" aria-current="true">資產管理</a>
+        <a href="account.html">會員中心</a>
+        <a href="#" id="logout-link">登出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap assets-main">
+      <div class="page-head">
+        <div>
+          <h1>電腦資產管理</h1>
+          <p id="asset-subtitle">載入緊…</p>
+        </div>
+        <button class="btn btn-ghost" type="button" id="refresh-btn">重新整理</button>
+      </div>
+
+      <dl class="stat-grid" id="asset-stats">
+        <div class="stat-tile"><dt>電腦總數</dt><dd id="stat-total">—</dd></div>
+        <div class="stat-tile is-ok"><dt>使用中</dt><dd id="stat-active">—</dd></div>
+        <div class="stat-tile"><dt>維修／借出</dt><dd id="stat-hold">—</dd></div>
+        <div class="stat-tile is-bad"><dt>已棄置／遺失</dt><dd id="stat-gone">—</dd></div>
+        <div class="stat-tile"><dt>分佈樓宇</dt><dd id="stat-buildings">—</dd></div>
+        <div class="stat-tile stat-tile-date"><dt>最後匯入</dt><dd id="stat-imported">—</dd></div>
+      </dl>
+      <section class="panel filter-panel" aria-label="篩選條件">
+        <div class="filter-row">
+          <input class="search-input filter-search" type="search" id="filter-q"
+                 placeholder="搜尋條碼、型號、序號、位置…" aria-label="搜尋電腦">
+          <select class="filter-select" id="filter-building" aria-label="樓宇">
+            <option value="">全部樓宇</option>
+          </select>
+          <select class="filter-select" id="filter-group" aria-label="資產類別">
+            <option value="">全部類別</option>
+          </select>
+          <select class="filter-select" id="filter-brand" aria-label="品牌">
+            <option value="">全部品牌</option>
+          </select>
+          <select class="filter-select" id="filter-status" aria-label="系統狀態">
+            <option value="">全部狀態</option>
+          </select>
+          <select class="filter-select" id="filter-equipment" aria-label="Excel 原始狀態">
+            <option value="">全部 Excel 狀態</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" type="button" id="clear-filters">清除篩選</button>
+        </div>
+      </section>
+
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <span id="asset-count" class="field-hint">載入緊…</span>
+        </div>
+        <div class="toolbar-group">
+          <span class="field-hint" id="sort-hint">撳欄名可以排序</span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table asset-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="bar_code" scope="col">條碼</th>
+              <th class="sortable" data-sort="location" scope="col">位置</th>
+              <th class="sortable" data-sort="brand" scope="col">品牌／型號</th>
+              <th class="sortable" data-sort="asset_group" scope="col">類別</th>
+              <th class="sortable" data-sort="arr_date" scope="col">到貨日期</th>
+              <th class="sortable" data-sort="status" scope="col">狀態</th>
+              <th scope="col">負責人</th>
+              <th scope="col">Excel</th>
+              <th class="col-narrow" scope="col"><span class="sr-only">操作</span></th>
+            </tr>
+          </thead>
+          <tbody id="assets-body">
+            <tr><td colspan="9" class="loading">載入緊…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <button class="btn btn-ghost btn-sm" type="button" id="page-prev" aria-label="上一頁">←</button>
+        <span id="page-info" class="field-hint">—</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="page-next" aria-label="下一頁">→</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>© 2026 陳大文 · 香港</p>
+    </div>
+  </footer>
+
+  <!-- 右邊滑出嘅詳情面板 -->
+  <div class="drawer" id="asset-drawer" hidden>
+    <div class="drawer-scrim" data-drawer-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <header class="drawer-head">
+        <div>
+          <p class="drawer-eyebrow" id="drawer-group">—</p>
+          <h2 id="drawer-title">—</h2>
+          <p class="drawer-sub" id="drawer-barcode">—</p>
+        </div>
+        <button class="icon-btn" type="button" id="drawer-close" aria-label="關閉詳情">×</button>
+      </header>
+
+      <div class="drawer-body">
+        <section class="drawer-section">
+          <h3>管理資料</h3>
+
+          <form id="asset-form" class="drawer-form" hidden novalidate>
+            <div class="field">
+              <label for="edit-location">位置</label>
+              <input id="edit-location" type="text" placeholder="例如 YIA 606">
+              <p class="field-hint">人手改咗嘅位置，之後再匯入 Excel 都唔會被洗走。</p>
+            </div>
+            <div class="field">
+              <label for="edit-status">系統狀態</label>
+              <select id="edit-status">
+                <option value="active">使用中</option>
+                <option value="maintenance">維修中</option>
+                <option value="loaned">借出中</option>
+                <option value="retired">已棄置</option>
+                <option value="lost">遺失</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="edit-custodian">負責人</label>
+              <input id="edit-custodian" type="text" placeholder="邊個用緊部機">
+            </div>
+            <div class="field">
+              <label for="edit-department">部門</label>
+              <input id="edit-department" type="text">
+            </div>
+            <div class="field">
+              <label for="edit-condition">狀況備註</label>
+              <input id="edit-condition" type="text" placeholder="例如：電池老化、要換風扇">
+            </div>
+            <div class="field">
+              <label for="edit-note">管理備註</label>
+              <textarea id="edit-note" rows="3" placeholder="其他備註"></textarea>
+            </div>
+            <div class="field">
+              <label for="edit-reason">今次改動嘅原因</label>
+              <input id="edit-reason" type="text" placeholder="會記低喺變更紀錄度">
+            </div>
+            <p class="form-msg" id="asset-form-msg" role="alert"></p>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" type="button" data-drawer-close>取消</button>
+              <button class="btn btn-primary" type="submit" id="asset-save">儲存</button>
+            </div>
+          </form>
+
+          <dl class="profile-grid" id="managed-grid"></dl>
+        </section>
+        <section class="drawer-section">
+          <h3>Excel 原始資料</h3>
+          <dl class="profile-grid" id="excel-grid"></dl>
+        </section>
+
+        <section class="drawer-section">
+          <h3>變更紀錄</h3>
+          <ol class="timeline" id="asset-logs"></ol>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/assets.js"></script>
+</body>
+</html>

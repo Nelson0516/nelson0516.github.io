@@ -42,13 +42,19 @@ if (sections.length && 'IntersectionObserver' in window) {
 
 // 會員系統需要後端 API 先行到。
 // 喺 GitHub Pages（冇後端）就唔好顯示個入口，免得俾人撳入去。
-const memberLink = document.querySelector('[data-member-link]');
-if (memberLink) {
+const memberLinks = document.querySelectorAll('[data-member-link]');
+if (memberLinks.length) {
   fetch('/api/me', { credentials: 'same-origin' })
     .then((res) => {
-      if (res.status !== 404) memberLink.hidden = false;
+      if (res.status !== 404) {
+        memberLinks.forEach((link) => {
+          link.hidden = false;
+        });
+      }
     })
     .catch(() => {
-      memberLink.hidden = true;
+      memberLinks.forEach((link) => {
+        link.hidden = true;
+      });
     });
 }

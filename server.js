@@ -22,6 +22,7 @@ const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 4321;
 const HOST = process.env.HOST || '127.0.0.1';
 const DB_FILE = process.env.DB_FILE || path.join(ROOT, 'db', 'members.db');
+const ASSETS_DB_FILE = process.env.ASSETS_DB_FILE || path.join(ROOT, 'db', 'assets.db');
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
 const MIME = {
@@ -293,7 +294,8 @@ function createServer(db, opts = {}) {
 async function start() {
   startWatching();
   const db = await createDb({ file: DB_FILE });
-  const server = createServer(db);
+  const assetsDb = await createDb({ file: ASSETS_DB_FILE, schema: 'assets' });
+  const server = createServer(db, { assetsDb });
 
   await new Promise((resolve, reject) => {
     server.once('error', (err) => {
@@ -312,12 +314,14 @@ async function start() {
   }).catch((err) => {
     stopWatching();
     db.close();
+    assetsDb.close();
     throw err;
   });
 
   console.log('');
   console.log('  網站開咗：  http://localhost:' + PORT);
   console.log('  資料庫：    ' + DB_FILE);
+  console.log('  資產資料：  ' + ASSETS_DB_FILE);
   console.log('  按 Ctrl + C 停止');
   console.log('');
 
@@ -326,6 +330,7 @@ async function start() {
     server.close(() => {
       server.closeAllConnections();
       db.close();
+      assetsDb.close();
       process.exit(0);
     });
   };
@@ -342,4 +347,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createServer, start, stopWatching, DB_FILE, IS_DEV };
+module.exports = { createServer, start, stopWatching, DB_FILE, ASSETS_DB_FILE, IS_DEV };

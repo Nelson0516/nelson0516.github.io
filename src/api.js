@@ -12,6 +12,7 @@
  */
 
 const auth = require('./auth');
+const assetsApi = require('./assets');
 
 const SESSION_COOKIE = 'sid';
 const MAX_FAILED = 5;           // 連續錯幾多次就鎖
@@ -616,6 +617,7 @@ const WRITE_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 function createApi(db, opts = {}) {
   const buckets = new Map();
   const rateLimit = opts.rateLimit ?? RATE_LIMIT;
+  const assetsDb = opts.assetsDb ?? null;
 
   return async function handleApi(req, res, ctx) {
     const pathname = ctx.url.pathname;
@@ -671,6 +673,12 @@ function createApi(db, opts = {}) {
       return true;
     }
 
+    // === 資產管理 ===
+    if (/^\/api\/assets(\/|$)/.test(pathname)) {
+      const handled = await handleAssets(assetsDb, db, req, res, ctx, method);
+      if (handled) return true;
+    }
+
     const userMatch = pathname.match(/^\/api\/admin\/users\/(\d+)(\/[a-z-]+)?$/);
     if (userMatch) {
       ctx.params = { id: userMatch[1] };
@@ -692,6 +700,72 @@ function createApi(db, opts = {}) {
 
     return json(res, 404, { ok: false, message: '冇呢個 API' }), true;
   };
+}
+
+/* ---------- 資產管理路由 ---------- */
+
+/**
+ * 資產相關嘅 API。
+ *
+ * 睇資料：任何登入咗嘅會員都得
+ * 改資料：只有管理員
+ */
+async function handleAssets(assetsDb, memberDb, req, res, ctx, method) {
+  if (!assetsDb) {
+    return json(res, 503, { ok: false, message: '資產資料庫未連接' }), true;
+  }
+
+  const pathname = ctx.url.pathname;
+
+  // 全部都要登入先做得
+  const user = await getSessionUser(memberDb, req);
+  if (!user) {
+    return json(res, 401, { ok: false, message: '未登入' }), true;
+  }
+  ctx.user = user;
+
+  if (pathname === '/api/assets' && method === 'GET') {
+    await assetsApi.listAssets(assetsDb, req, res, ctx);
+    return true;
+  }
+
+  if (pathname === '/api/assets/stats' && method === 'GET') {
+    await assetsApi.assetStats(assetsDb, req, res);
+    return true;
+  }
+
+  if (pathname === '/api/assets/filters' && method === 'GET') {
+    await assetsApi.assetFilters(assetsDb, req, res);
+    return true;
+  }
+
+  const detailMatch = pathname.match(/^\/api\/assets\/(\d+)$/);
+  if (detailMatch) {
+    ctx.params = { id: detailMatch[1] };
+
+    if (method === 'GET') {
+      await assetsApi.assetDetail(assetsDb, req, res, ctx);
+      return true;
+    }
+
+    if (method === 'PATCH') {
+      if (user.role !== 'admin') {
+        return json(res, 403, { ok: false, message: '只有管理員可以改資料' }), true;
+      }
+
+      let body;
+      try {
+        body = await readBody(req);
+      } catch {
+        return json(res, 400, { ok: false, message: '送過嚟嘅資料唔完整' }), true;
+      }
+
+      await assetsApi.updateAsset(assetsDb, req, res, ctx, body);
+      return true;
+    }
+  }
+
+  return json(res, 404, { ok: false, message: '冇呢個 API' }), true;
 }
 
 module.exports = {
