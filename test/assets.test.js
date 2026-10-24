@@ -411,6 +411,48 @@ test('查找位置會連 Excel 原始位置一齊搵', async () => {
   assert.equal(original.data.assets[0].bar_code, 'BC001');
 });
 
+test('可以按樓宇搵，樓宇係完全匹配', async () => {
+  const cookie = await login('member', MEMBER_PW);
+
+  // BC001 搬咗去 YIA 999，BC002 原本就喺 YIA 606 ERM
+  const yia = await req('GET', '/api/assets/lookup?building=YIA', { cookie });
+  assert.equal(yia.data.total, 2);
+  assert.deepEqual(
+    yia.data.assets.map((a) => a.bar_code).sort(),
+    ['BC001', 'BC002']
+  );
+
+  const lsb = await req('GET', '/api/assets/lookup?building=ST-LSB', { cookie });
+  assert.equal(lsb.data.total, 1);
+  assert.equal(lsb.data.assets[0].bar_code, 'BC003');
+
+  const moved = await req('GET', '/api/assets/lookup?building=LSK', { cookie });
+  assert.equal(moved.data.total, 0, 'BC001 已經搬咗，LSK 應該冇嘢');
+});
+
+test('樓宇可以同其他欄位一齊用', async () => {
+  const cookie = await login('member', MEMBER_PW);
+
+  const hit = await req('GET', '/api/assets/lookup?building=YIA&brand=LENOVO', { cookie });
+  assert.equal(hit.data.total, 1);
+  assert.equal(hit.data.assets[0].bar_code, 'BC002');
+
+  const miss = await req('GET', '/api/assets/lookup?building=YIA&brand=EPSON', { cookie });
+  assert.equal(miss.data.total, 0);
+});
+
+test('下拉清單有位置同型號俾用', async () => {
+  const cookie = await login('member', MEMBER_PW);
+  const res = await req('GET', '/api/assets/filters', { cookie });
+  assert.equal(res.status, 200);
+
+  assert.ok(res.data.locations.length > 0, '應該有位置清單');
+  assert.ok(res.data.models.length > 0, '應該有型號清單');
+  assert.ok(res.data.locations.every((r) => typeof r.value === 'string' && r.value));
+  assert.ok(res.data.models.every((r) => typeof r.value === 'string' && r.value));
+  assert.ok(res.data.models.every((r) => typeof r.n === 'number'));
+});
+
 test('查找入面嘅引號唔會整到 SQL 壞', async () => {
   const cookie = await login('member', MEMBER_PW);
   const res = await req(

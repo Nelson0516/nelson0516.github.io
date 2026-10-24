@@ -5,8 +5,6 @@
 
   const FIELDS = [
     { id: 'lookup-barcodes', key: 'bar_code' },
-    { id: 'lookup-location', key: 'location' },
-    { id: 'lookup-model', key: 'model_no' },
     { id: 'lookup-group', key: 'asset_group' },
     { id: 'lookup-brand', key: 'brand' },
     { id: 'lookup-serial', key: 'serial_no' },
@@ -53,6 +51,52 @@
     }
   }
 
+  /**
+   * 位置下拉分兩組：
+   *   樓宇 —— 揀「YIA」就係 YIA 嗰棟樓全部房間
+   *   位置 —— 揀「YIA 606」就係嗰個位置
+   */
+  function fillLocationSelect(select, buildings, locations) {
+    select.textContent = '';
+    select.append(el('option', { value: '', text: '全部位置' }));
+
+    const byBuilding = el('optgroup', { label: '樓宇（全部房間）' });
+    for (const row of buildings) {
+      byBuilding.append(
+        el('option', {
+          value: row.value,
+          text: `${row.value}（${row.n} 部）`,
+          'data-kind': 'building',
+        })
+      );
+    }
+    select.append(byBuilding);
+
+    const byPlace = el('optgroup', { label: '位置' });
+    for (const row of locations) {
+      byPlace.append(
+        el('option', {
+          value: row.value,
+          text: row.old
+            ? `${row.value}（Excel 舊位置，${row.n} 部）`
+            : `${row.value}（${row.n} 部）`,
+          'data-kind': 'location',
+        })
+      );
+    }
+    select.append(byPlace);
+  }
+
+  function fillModelSelect(select, models) {
+    select.textContent = '';
+    select.append(el('option', { value: '', text: '全部型號' }));
+    for (const row of models) {
+      select.append(
+        el('option', { value: row.value, text: `${row.value}（${row.n} 部）` })
+      );
+    }
+  }
+
   async function loadOptions() {
     const res = await api('/api/assets/filters');
     if (res.status === 401) {
@@ -63,6 +107,15 @@
 
     fillSelect(document.getElementById('lookup-group'), res.data.groups, '全部類別');
     fillSelect(document.getElementById('lookup-brand'), res.data.brands, '全部品牌');
+    fillLocationSelect(
+      document.getElementById('lookup-location'),
+      res.data.buildings,
+      res.data.locations || []
+    );
+    fillModelSelect(
+      document.getElementById('lookup-model'),
+      res.data.models || []
+    );
     fillSelect(
       document.getElementById('lookup-status'),
       res.data.statuses.map((s) => ({ value: s.value, label: s.label })),
@@ -78,6 +131,18 @@
       const value = document.getElementById(field.id).value.trim();
       if (value) params.set(field.key, value);
     }
+
+    // 位置下拉分「樓宇」同「位置」，樓宇要行另一個參數
+    const place = document.getElementById('lookup-location');
+    const chosen = place.selectedOptions[0];
+    if (chosen && chosen.value) {
+      if (chosen.dataset.kind === 'building') params.set('building', chosen.value);
+      else params.set('location', chosen.value);
+    }
+
+    const model = document.getElementById('lookup-model').value.trim();
+    if (model) params.set('model_no', model);
+
     return params;
   }
 

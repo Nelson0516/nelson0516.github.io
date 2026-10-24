@@ -214,6 +214,14 @@ function buildLookupFilters(ctx) {
   const params = [];
   let filled = 0;
 
+  // 樓宇係完全匹配（揀「YIA」就係 YIA 嗰棟樓全部房間）
+  const building = (p.get('building') || '').trim();
+  if (building) {
+    where.push('a.building = ?');
+    params.push(building);
+    filled += 1;
+  }
+
   for (const [key, column] of Object.entries(LOOKUP_FIELDS)) {
     const value = (p.get(key) || '').trim();
     if (!value) continue;
@@ -388,11 +396,33 @@ async function assetFilters(db, req, res) {
     'SELECT asset_group AS value, COUNT(*) AS n FROM assets GROUP BY asset_group ORDER BY asset_group'
   );
 
+  // 位置：現行位置 + 已經冇再用但仲喺 Excel 留低嘅舊位置
+  const locations = await db.all(
+    `SELECT location AS value, COUNT(*) AS n, 0 AS old FROM assets
+      WHERE location IS NOT NULL AND location != ''
+      GROUP BY location
+     UNION ALL
+     SELECT excel_location AS value, COUNT(*) AS n, 1 AS old FROM assets
+      WHERE excel_location IS NOT NULL AND excel_location != ''
+        AND excel_location NOT IN (
+          SELECT location FROM assets WHERE location IS NOT NULL AND location != ''
+        )
+      GROUP BY excel_location
+     ORDER BY value`
+  );
+
+  // 型號：同 Excel 入面嘅 model_no 一樣
+  const models = await db.all(
+    "SELECT model_no AS value, COUNT(*) AS n FROM assets WHERE model_no IS NOT NULL AND model_no != '' GROUP BY model_no ORDER BY model_no"
+  );
+
   return json(res, 200, {
     ok: true,
     buildings,
     brands,
     groups,
+    locations,
+    models,
     statuses: ASSET_STATUSES.map((s) => ({ value: s, label: ASSET_STATUS_LABELS[s] })),
   });
 }
