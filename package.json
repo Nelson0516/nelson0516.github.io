@@ -7,6 +7,7 @@
     "dev": "node server.js",
     "start": "node server.js",
     "seed": "node db/seed.js",
+    "passwords": "node db/show-passwords.js",
     "test": "node --test test/"
   },
   "engines": {
