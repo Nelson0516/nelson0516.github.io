@@ -47,12 +47,14 @@ npm run dev
 
 呢步好重要。Git 會記低你每次改咗咩，改壞咗可以還原返。
 
-首次設定（只需做一次）：
+呢個專案已經初始化咗 Git 並且有咗第一個版本。你只需要改返自己嘅名同電郵：
 
 ```bash
-git config --global user.name "陳大文"
-git config --global user.email "you@example.com"
+git config user.name "陳大文"
+git config user.email "you@example.com"
 ```
+
+（如果想在所有專案都生效，兩個 `git config` 後面加 `--global`。）
 
 之後每次改完：
 
@@ -70,30 +72,52 @@ git commit -m "更新咗作品列表"
 呢個網站係純靜態嘅，所以有好多免費選擇。**建議用 Cloudflare Pages 或 Vercel**
 —— 兩者都唔使設定伺服器，而且會自動喺你 push 完 code 之後自動更新網站。
 
-步驟（以 GitHub + Cloudflare Pages 為例）：
+### 步驟 A：首次設定（做一次就得）
 
-1. 去 [github.com](https://github.com) 開個帳戶
+1. 去 [github.com](https://github.com) 開個帳戶（用電郵或者 Google 登入都可以）
 2. 喺 Terminal 執行：
+
    ```bash
    cd ~/Documents/Codex/2026-10-24/hi/outputs/my-website
-   git init
-   git add .
-   git commit -m "第一版網站"
-   git branch -M main
-   git remote add origin https://github.com/你的帳戶名/my-website.git
-   git push -u origin main
+
+   # 話畀 Git 你叫咩名、用咩電郵（email 要同 GitHub 帳戶嗰個一樣）
+   git config user.name "陳大文"
+   git config user.email "you@example.com"
+
+   # 登入 GitHub：會開個瀏覽器畀你撳授權
+   gh auth login --git-protocol https --web
    ```
-3. 去 [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** →
+
+3. 建立 GitHub 專案並推上去（`gh` 會自動幫你接好 remote）：
+
+   ```bash
+   gh repo create my-website --private --source=. --remote=origin --push
+   ```
+
+   想公開畀全世界睇就用 `--public`，想自己收埋就用 `--private`。
+
+### 步驟 B：接上 Cloudflare Pages（自動更新）
+
+1. 去 [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** →
    **Create** → **Pages** → **Connect to Git**，揀你個 `my-website` repo
-4. Build 設定：
+2. Build 設定：
    - Build command：*（留空）*
    - Build output directory：`/`
-5. 撳 **Save and Deploy**，大約一分鐘就攞到網址
+3. 撳 **Save and Deploy**，大約一分鐘就攞到網址
 
-之後你每次在 Terminal 執行 `git push`，網站就會自動更新。
+之後你每次在 Terminal 執行 `git push`，網站就會自動更新 — 唔使再登入 Cloudflare。
 
 > **要自訂網域**：喺 Cloudflare Pages 嘅 Custom domains 度加返，
 > 同埋喺網域註冊商嗰邊將 DNS 指向 Cloudflare 嘅伺服器。
+
+### 日後用 `gh` 嘅懶人指令
+
+```bash
+gh repo view              # 睇 repo 資料
+gh repo open             # 用瀏覽器打開
+gh pr list                # 有 pull request 就用
+gh auth status            # 睇登入狀態
+```
 
 ---
 
