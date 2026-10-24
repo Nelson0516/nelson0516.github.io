@@ -67,12 +67,154 @@ git commit -m "更新咗作品列表"
 
 ---
 
-## 二、擺上網（部署）
+## 二、會員系統（登入 + 資料庫）
+
+個網站加咗一套會員系統：可以登入、可以睇返自己嘅資料，
+管理員仲可以喺後台睇全部會員同登入紀錄（包括邊個幾點登入、密碼有冇錯）。
+
+### 邊個檔案做咩
+
+| 檔案 | 用途 |
+|---|---|
+| `db/schema.sql` | 資料庫結構（3 個表：`users` `sessions` `login_logs`） |
+| `db/seed.js` | 產生 30 個會員帳戶 |
+| `src/auth.js` | 密碼雜湊、session token、密碼強度檢查 |
+| `src/db.js` | 資料庫存取層（本機 SQLite / 將來 Cloudflare D1 通用） |
+| `src/api.js` | 所有 API：登入、登出、會員中心、管理後台 |
+| `server.js` | 伺服器：派網站檔案 + 處理 API |
+| `login.html` | 登入頁 |
+| `account.html` | 會員中心 |
+| `admin.html` | 管理後台 |
+| `js/login.js` `js/account.js` `js/admin.js` | 三個頁面嘅互動邏輯 |
+| `css/members.css` | 會員系統嘅樣式 |
+| `test/api.test.js` | 自動測試（17 個） |
+
+### 開返個網站
+
+同之前一樣：
+
+```bash
+cd ~/Documents/Codex/2026-10-24/hi/outputs/my-website
+npm run dev
+```
+
+打開 **http://localhost:4321/login.html** 就見到登入頁。
+首頁右上角有「會員」掣可以跳去。
+
+### 產生 30 個會員
+
+```bash
+npm run seed
+```
+
+會做兩件事：
+
+1. 喺 `db/members.db` 開 30 個會員帳戶（第一個 `nelson` 係管理員）
+2. 將隨機生成嘅初始密碼寫落 `db/initial-passwords.txt`
+
+> **派發之後記得刪走 `db/initial-passwords.txt`。**
+> 呢個檔案已經喺 `.gitignore` 入面，唔會上傳到 GitHub，
+> 但係派完密碼之後留喺度始終唔安全。密碼本身喺資料庫只存雜湊，
+> 就算你想再睇返都睇唔到。
+
+### 圖形化管理資料庫
+
+已經裝咗 **DBeaver Community**（免費開源）。用法：
+
+1. 開 DBeaver → **Database → New Database Connection** → 揀 **SQLite**
+2. 揀 `~/Documents/Codex/2026-10-24/hi/outputs/my-website/db/members.db`
+3. 撳 Test Connection → Finish
+
+之後就可以用滑鼠直接睇 `users`、`sessions`、`login_logs` 三個表。
+
+> ⚠️ **唔好用 GUI 改密碼或者登入紀錄。** 咁樣會漏咗寫入紀錄，
+> 亦可能撞到資料庫鎖。管理會員嘅動作請行返入網頁版後台（`admin.html`），
+> GUI 用嚟睇數據同做備份。
+
+想用更簡單嘅工具，可以裝 DB Browser for SQLite：
+`brew install --cask db-browser-for-sqlite`
+
+### 資料庫結構
+
+```text
+users         會員帳戶：帳戶名、姓名、密碼雜湊、身分、狀態、
+              連續失敗次數、鎖定時間、最後登入時間
+sessions      登入狀態：只存 token 嘅 SHA-256，7 日後自動失效
+login_logs    登入紀錄：幾點、邊個帳戶、成功定失敗、IP、裝置
+```
+
+### 安全設計
+
+- **資料庫永遠冇明文密碼。** 用 PBKDF2-HMAC-SHA512、210,000 次迭代（OWASP 建議值），
+  每個密碼獨立隨機 salt。連管理員都睇唔返原始密碼。
+- **登入紀錄唔會記低輸入咗咩密碼**，只記帳戶名同結果。
+- **密碼錯同帳戶唔存在，回覆完全一樣**，防止有人逐個帳戶試出邊個存在。
+- **連續錯 5 次鎖 15 分鐘**；同一 IP 每分鐘最多 20 次嘗試。
+- **Session token 喺資料庫只存 SHA-256**；cookie 係 `HttpOnly` + `SameSite=Strict` + `Secure`。
+- **修改資料嘅請求會檢查來源**（Origin），防止跨站請求偽造。
+- **有安全標頭**：CSP、`X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`。
+- **SQL 全部用參數綁定**，唔會有 SQL 注入。
+
+### 自動測試
+
+```bash
+npm test
+```
+
+會用一個臨時資料庫跑 17 個測試（登入、鎖定、權限、改密、限流、SQL 注入…），
+唔會整到正式資料庫。
+
+### 備份
+
+SQLite 嘅備份好簡單 —— 淨係複製一個檔案：
+
+```bash
+sqlite3 db/members.db ".backup '~/Desktop/members-backup.db'"
+```
+
+> 伺服器開住嗰陣，資料庫有三個檔案：`.db`、`.db-wal`、`.db-shm`。
+> 用上面 `.backup` 指令最穩陣，因為佢會將三個檔案嘅內容一齊寫入去。
+
+### ⚠️ GitHub Pages 跑唔到呢部分
+
+GitHub Pages 只係派靜態檔案，冇後端程式，所以**登入系統喺 GitHub Pages 係行唔到**。
+要公開使用，需要將網站搬到會行程式嘅地方：
+
+| 方案 | 優點 | 代價 |
+|---|---|---|
+| **A. 喺你部 Mac mini 行** | 零新帳戶、零月費 | 電腦要開住；要處理外網連線同 HTTPS 證書 |
+| **B. Cloudflare Pages + D1** | 全年免費、24 小時唔會斷、HTTPS 自動 | 要開多一個 Cloudflare 免費帳戶 |
+
+如果行方案 B，D1 本身就係 SQLite，`db/schema.sql` 唔使改，
+淨係要將 `src/api.js` 改成 Cloudflare Pages Function 嘅寫法。
+
+### 私隱提醒
+
+記錄 30 個人嘅登入時間、IP 同裝置，喺香港《個人資料（私隱）條例》
+屬於個人資料。建議：
+
+- 會員名單只畀需要嘅管理員睇
+- 定期清理過期嘅登入紀錄（例如只保留 90 日）
+- 同會員講清楚會記錄咩資料
+
+### 將來加功能
+
+想加會員自行改密碼、email 驗證、兩步驗證、忘記密碼？
+直接講聲，喺呢個基礎上加就得，唔使重頭嚟。
+
+---
+
+## 三、擺上網（部署）
 
 呢個網站**已經上咗線**：https://nelson0516.github.io/
 
 用嘅係 GitHub Pages —— 免費、唔使另外開帳戶、唔使設定伺服器，
 而且每次 `git push` 就會自動重新部署。
+
+> ⚠️ 但係**會員系統（登入、資料庫）喺 GitHub Pages 行唔到**，
+> 因為 GitHub Pages 只會派靜態檔案，冇後端程式。
+> 會員系統而家行喺你部 Mac mini（`npm run dev`）。
+> 想公開使用就睇「二、會員系統」入面嘅搬遷選項。
 
 ### 步驟 A：首次設定（做一次就得）
 
@@ -135,7 +277,7 @@ gh auth status            # 睇登入狀態
 
 ---
 
-## 三、長線維護
+## 四、長線維護
 
 ### 每月做一次（約 5 分鐘）
 
@@ -172,16 +314,35 @@ brew update
 
 ---
 
-## 四、檔案結構
+## 五、檔案結構
 
 ```text
 my-website/
 ├─ index.html          ← 頁面內容（你大部分時間喺度改）
+├─ login.html          ← 登入頁
+├─ account.html        ← 會員中心
+├─ admin.html          ← 管理後台
 ├─ css/
-│  └─ style.css       ← 外觀
+│  ├─ style.css       ← 外觀
+│  └─ members.css     ← 會員系統嘅樣式
 ├─ js/
-│  └─ main.js         ← 互動效果
-├─ server.js           ← 本機預覽伺服器（自動 reload）
+│  ├─ main.js         ← 首頁互動效果
+│  ├─ common.js       ← 共用工具（時間格式、API）
+│  ├─ login.js        ← 登入頁邏輯
+│  ├─ account.js      ← 會員中心邏輯
+│  └─ admin.js        ← 管理後台邏輯
+├─ src/
+│  ├─ auth.js         ← 密碼雜湊、session
+│  ├─ db.js           ← 資料庫存取層
+│  └─ api.js          ← 所有 API
+├─ db/
+│  ├─ schema.sql      ← 資料庫結構
+│  ├─ seed.js         ← 產生 30 個會員
+│  ├─ members.db      ← 正式資料庫（唔會 commit）
+│  └─ initial-passwords.txt ← 初始密碼（唔會 commit，派完就刪）
+├─ test/
+│  └─ api.test.js     ← 自動測試
+├─ server.js           ← 伺服器（派檔案 + 處理 API + 自動 reload）
 ├─ package.json        ← 專案設定
 ├─ favicon.svg         ← 網站圖示
 ├─ .nojekyll           ← 令 GitHub Pages 唔經 Jekyll 處理
@@ -191,7 +352,7 @@ my-website/
 
 ---
 
-## 五、常見問題
+## 六、常聞問題
 
 **Q: 撳 `npm run dev` 話 `command not found: npm`？**
 
@@ -212,6 +373,24 @@ Node.js 啱啱裝好，Terminal 未重新開。閂咗再開一個 Terminal 就�
 
 **Q: 之後想加功能（例如聯絡表單、會員系統）點算？**
 
-呢個先至係重點。到時需要裝嘢同埋一個後端，可以叫 AI 助手
-（例如 Codex）幫手擴充。呢個骨架係特意保持簡單，
-方便日後加嘢時唔會要拆重來。
+會員系統已經做好咗（見「二、會員系統」）。之後想加聯絡表單、
+會員自行改密碼、email 驗證、兩步驗證等等，直接叫 AI 助手（例如 Codex）
+幫手擴充就得，唔使拆重嚟。
+
+**Q: 會員密碼唔見咗點算？**
+
+去 `admin.html` 用管理員帳戶登入，喺會員名單嗰行撳「重設密碼」，
+會即刻產生一個新密碼畀你。舊密碼即刻失效。
+密碼本身係雜湊咗存，連管理員都睇唔返。
+
+**Q: `npm test` 話 listen 唔到？**
+
+測試程式要喺本機開一個臨時 port（127.0.0.1）。
+如果係喺沙盒／受限環境入面跑，會被擋住，喺正常 Terminal 度跑就冇問題。
+
+**Q: 點解用 SQLite 唔用 PostgreSQL？**
+
+呢個規模（30 個人、得一個後端程式）SQLite 完全綽綽有餘，
+而且慳好多嘢：零背景服務、零開機自動啟動、備份只係複製一個檔案、
+冇網絡埠所以攻擊面更細。DBeaver Community 支援所有主流資料庫，
+所以將來真係要轉 PostgreSQL 都唔會浪費咗個工具。

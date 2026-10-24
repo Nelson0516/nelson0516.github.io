@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理後台 — 陳大文</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/members.css">
+</head>
+<body class="members-page">
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-mark" aria-hidden="true">CW</span>
+        <span class="brand-name">陳大文</span>
+      </a>
+      <nav class="site-nav" aria-label="主要選單">
+        <a href="index.html">返首頁</a>
+        <a href="account.html">會員中心</a>
+        <a href="#" id="logout-link">登出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap admin-main">
+      <div class="page-head">
+        <div>
+          <h1>管理後台</h1>
+          <p>會員名單同登入紀錄</p>
+        </div>
+        <button class="btn btn-primary" type="button" id="new-user-btn">新增會員</button>
+      </div>
+
+      <dl class="stat-grid" id="stat-grid">
+        <div class="stat-tile"><dt>會員總數</dt><dd id="stat-total">—</dd></div>
+        <div class="stat-tile"><dt>啟用中</dt><dd id="stat-active">—</dd></div>
+        <div class="stat-tile"><dt>已停用</dt><dd id="stat-inactive">—</dd></div>
+        <div class="stat-tile"><dt>鎖定中</dt><dd id="stat-locked">—</dd></div>
+        <div class="stat-tile is-ok"><dt>今日登入</dt><dd id="stat-login">—</dd></div>
+        <div class="stat-tile is-bad"><dt>今日失敗</dt><dd id="stat-fail">—</dd></div>
+      </dl>
+
+      <div class="tabs" role="tablist" aria-label="檢視範圍">
+        <button class="tab-btn" type="button" role="tab" id="tab-users"
+                aria-selected="true" aria-controls="view-users">會員名單</button>
+        <button class="tab-btn" type="button" role="tab" id="tab-logs"
+                aria-selected="false" aria-controls="view-logs">登入紀錄</button>
+      </div>
+
+      <!-- 會員名單 -->
+      <section id="view-users" role="tabpanel" aria-labelledby="tab-users">
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <input class="search-input" type="search" id="user-search"
+                   placeholder="搜尋姓名或帳戶名" aria-label="搜尋會員">
+          </div>
+          <div class="toolbar-group">
+            <span id="user-count" class="field-hint"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>帳戶名</th>
+                <th>身分</th>
+                <th>狀態</th>
+                <th class="num">登入</th>
+                <th class="num">失敗</th>
+                <th>最近登入</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="users-body">
+              <tr><td colspan="8" class="loading">載入緊…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 登入紀錄 -->
+      <section id="view-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <input class="search-input" type="search" id="log-search"
+                   placeholder="搜尋帳戶名" aria-label="搜尋登入紀錄">
+            <label class="check-label">
+              <input type="checkbox" id="log-failed-only"> 只睇失敗
+            </label>
+          </div>
+          <div class="toolbar-group">
+            <button class="btn btn-ghost btn-sm" type="button" id="log-more">載入更多</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>時間</th>
+                <th>帳戶名</th>
+                <th>姓名</th>
+                <th>結果</th>
+                <th>IP</th>
+                <th>裝置</th>
+              </tr>
+            </thead>
+            <tbody id="logs-body">
+              <tr><td colspan="6" class="loading">載入緊…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>© 2026 陳大文 · 香港</p>
+    </div>
+  </footer>
+
+  <!-- 新增會員 -->
+  <div class="modal-backdrop" id="new-user-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="new-user-title">
+      <h2 id="new-user-title">新增會員</h2>
+      <form id="new-user-form" novalidate>
+        <div class="field">
+          <label for="new-username">帳戶名</label>
+          <input id="new-username" type="text" autocapitalize="none" spellcheck="false" required>
+          <p class="field-hint">3 至 32 個字，只可以英文字母、數字、點、底線或連字號</p>
+        </div>
+        <div class="field">
+          <label for="new-name">姓名</label>
+          <input id="new-name" type="text" required>
+        </div>
+        <div class="field">
+          <label for="new-role">身分</label>
+          <select id="new-role">
+            <option value="member">一般會員</option>
+            <option value="admin">管理員</option>
+          </select>
+        </div>
+        <p class="form-msg" id="new-user-msg" role="alert"></p>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" type="button" data-close-modal>取消</button>
+          <button class="btn btn-primary" type="submit" id="new-user-submit">建立帳戶</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 顯示一次性密碼 -->
+  <div class="modal-backdrop" id="secret-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="secret-title">
+      <h2 id="secret-title">密碼已經生成</h2>
+      <div class="secret-box">
+        <p><strong id="secret-username"></strong> 嘅初始密碼：</p>
+        <code class="secret-value" id="secret-value"></code>
+        <p class="secret-note">
+          密碼只會出現這一次。請即刻抄低，之後就再睇唔返。
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" type="button" id="copy-secret">複製密碼</button>
+        <button class="btn btn-primary" type="button" data-close-modal>知道咗</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

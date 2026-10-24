@@ -39,3 +39,16 @@ if (sections.length && 'IntersectionObserver' in window) {
   );
   sections.forEach((section) => spy.observe(section));
 }
+
+// 會員系統需要後端 API 先行到。
+// 喺 GitHub Pages（冇後端）就唔好顯示個入口，免得俾人撳入去。
+const memberLink = document.querySelector('[data-member-link]');
+if (memberLink) {
+  fetch('/api/me', { credentials: 'same-origin' })
+    .then((res) => {
+      if (res.status !== 404) memberLink.hidden = false;
+    })
+    .catch(() => {
+      memberLink.hidden = true;
+    });
+}

@@ -5,9 +5,11 @@
   "description": "我嘅個人網站",
   "scripts": {
     "dev": "node server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "seed": "node db/seed.js",
+    "test": "node --test test/"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   }
 }

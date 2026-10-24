@@ -11,3 +11,11 @@ npm-debug.log*
 # 密鑰／環境變數 — 絕對唔好提交
 .env
 .env.*
+
+# 會員系統資料庫 — 載有個人資料，絕對唔好上載
+db/*.db
+db/*.db-wal
+db/*.db-shm
+
+# 初始密碼清單 — 派發之後就應該刪走
+db/initial-passwords.txt
