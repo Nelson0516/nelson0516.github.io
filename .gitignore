@@ -1,0 +1,13 @@
+# 系統檔案
+.DS_Store
+
+# 依賴（呢個專案根本唔需要，但其他日後可能有）
+node_modules/
+
+# 記錄檔
+*.log
+npm-debug.log*
+
+# 密鑰／環境變數 — 絕對唔好提交
+.env
+.env.*
