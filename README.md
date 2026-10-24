@@ -69,8 +69,10 @@ git commit -m "更新咗作品列表"
 
 ## 二、擺上網（部署）
 
-呢個網站係純靜態嘅，所以有好多免費選擇。**建議用 Cloudflare Pages 或 Vercel**
-—— 兩者都唔使設定伺服器，而且會自動喺你 push 完 code 之後自動更新網站。
+呢個網站**已經上咗線**：https://nelson0516.github.io/
+
+用嘅係 GitHub Pages —— 免費、唔使另外開帳戶、唔使設定伺服器，
+而且每次 `git push` 就會自動重新部署。
 
 ### 步驟 A：首次設定（做一次就得）
 
@@ -80,9 +82,9 @@ git commit -m "更新咗作品列表"
    ```bash
    cd ~/Documents/Codex/2026-10-24/hi/outputs/my-website
 
-   # 話畀 Git 你叫咩名、用咩電郵（email 要同 GitHub 帳戶嗰個一樣）
-   git config user.name "陳大文"
-   git config user.email "you@example.com"
+# 話畀 Git 你叫咩名、用咩電郵（email 要同 GitHub 帳戶嗰個一樣）
+git config user.name "Nelson Cheung"
+git config user.email "11511414+Nelson0516@users.noreply.github.com"
 
    # 登入 GitHub：會開個瀏覽器畀你撳授權
    gh auth login --git-protocol https --web
@@ -91,24 +93,36 @@ git commit -m "更新咗作品列表"
 3. 建立 GitHub 專案並推上去（`gh` 會自動幫你接好 remote）：
 
    ```bash
-   gh repo create my-website --private --source=. --remote=origin --push
+   gh repo create nelson0516.github.io --public --source=. --remote=origin --push
    ```
 
-   想公開畀全世界睇就用 `--public`，想自己收埋就用 `--private`。
+   個 repo 名用 `nelson0516.github.io`，GitHub Pages 就會直接用
+   **https://nelson0516.github.io/** 做網址，最簡單唔使另外設定。
 
-### 步驟 B：接上 Cloudflare Pages（自動更新）
+   > 順帶一提：用 `users.noreply.github.com` 呢種電郵，GitHub 仍然認得係你，
+   > 但公開咗嘅 commit 唔會泄露你真實嘅私人電郵地址。
 
-1. 去 [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** →
-   **Create** → **Pages** → **Connect to Git**，揀你個 `my-website` repo
-2. Build 設定：
-   - Build command：*（留空）*
-   - Build output directory：`/`
-3. 撳 **Save and Deploy**，大約一分鐘就攞到網址
+### 步驟 B：開啟 GitHub Pages（自動更新）
 
-之後你每次在 Terminal 執行 `git push`，網站就會自動更新 — 唔使再登入 Cloudflare。
+去 repo 嘅 **Settings → Pages**，Source 揀 **Deploy from a branch**，
+Branch 揀 `main`、folder 揀 `/ (root)`，撳 Save。
 
-> **要自訂網域**：喺 Cloudflare Pages 嘅 Custom domains 度加返，
-> 同埋喺網域註冊商嗰邊將 DNS 指向 Cloudflare 嘅伺服器。
+或者喺 Terminal 一次搞掂：
+
+```bash
+gh api repos/Nelson0516/nelson0516.github.io/pages -X POST \
+  -f 'source[branch]=main' -f 'source[path]=/'
+```
+
+之後你每次在 Terminal 執行 `git push`，GitHub 會自動重新部署，通常 1–2 分鐘生效。
+
+> **要自訂網域**：去 **Settings → Pages → Custom domain** 加你想用嘅域名，
+> 再喺網域註冊商嗰邊將 DNS 指向 GitHub Pages（`username.github.io`）。
+> GitHub 免費版提供 HTTPS 證書，唔使另外買。
+
+> **想將 repo 收埋（唔畀人睇 source code）？** GitHub Pages 免費版要求 repo 係公開。
+> 如果想收埋 source code 但網站照樣公開，可以改用 Cloudflare Pages 或者 Netlify，
+> 佢哋支援 private repo。
 
 ### 日後用 `gh` 嘅懶人指令
 
@@ -169,6 +183,8 @@ my-website/
 │  └─ main.js         ← 互動效果
 ├─ server.js           ← 本機預覽伺服器（自動 reload）
 ├─ package.json        ← 專案設定
+├─ favicon.svg         ← 網站圖示
+├─ .nojekyll           ← 令 GitHub Pages 唔經 Jekyll 處理
 ├─ .gitignore          ← 唔好提交嘅嘢
 └─ README.md           ← 呢份說明
 ```
